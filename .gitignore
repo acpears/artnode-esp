@@ -1,0 +1,20 @@
+# Mac & vscode
+.DS_Store
+.vscode/
+
+# Compiled object files
+*.o
+*.elf
+*.bin
+
+# Build directories
+/build/
+/dist/
+
+# esp-idf specific
+sdkconfig.old
+*.log
+.esp-idf/
+.esp-idf-version
+.venv/
+/managed_components/
