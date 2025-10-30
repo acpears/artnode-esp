@@ -5,6 +5,10 @@ if(${target} STREQUAL "linux")
     list(APPEND priv_requires nvs_flash esp_event esp_netif lwip)
 endif()
 
-idf_component_register(SRCS "udp_client.c"
-                    PRIV_REQUIRES ${priv_requires}
-                    INCLUDE_DIRS ".")
+# Automatically find all .c files
+file(GLOB SOURCES "*.c" "src/*.c")
+
+idf_component_register(
+    SRCS ${SOURCES}
+    PRIV_REQUIRES ${priv_requires}
+    INCLUDE_DIRS "." "include")
