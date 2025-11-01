@@ -30,7 +30,7 @@ static bool got_ip = false;
 static bool eth_link_up = false;
 
 static uint8_t dmx_data[UNIVERSE_COUNT][ADDRESSES_PER_UNIVERSE] = {0};
-static pattern_state_t pattern_states[4];
+static pattern_state_t pattern_states[5];
 
 static void artnet_controller_task(void *pvParameters)
 {
@@ -50,24 +50,24 @@ static void artnet_controller_task(void *pvParameters)
 
         led_strip_t strip_1 = {
             // Allocate memory for LEDs
-            .leds = malloc(sizeof(led_t) * 150),
-            .led_count = 150,
+            .leds = malloc(sizeof(led_t) * 100),
+            .led_count = 100,
             .start_universe = 1,
             .start_address = 1
         };
 
         led_strip_t strip_2 = {
             // Allocate memory for LEDs
-            .leds = malloc(sizeof(led_t) * 150),
-            .led_count = 150,
+            .leds = malloc(sizeof(led_t) * 100),
+            .led_count = 100,
             .start_universe = 2,
             .start_address = 1
         };
 
         led_strip_t strip_3 = {
             // Allocate memory for LEDs
-            .leds = malloc(sizeof(led_t) * 150),
-            .led_count = 150,
+            .leds = malloc(sizeof(led_t) * 100),
+            .led_count = 100,
             .start_universe = 3,
             .start_address = 1
         };
@@ -75,10 +75,18 @@ static void artnet_controller_task(void *pvParameters)
 
         led_strip_t strip_4 = {
             // Allocate memory for LEDs
-            .leds = malloc(sizeof(led_t) * 150),
-            .led_count = 150,
+            .leds = malloc(sizeof(led_t) * 100),
+            .led_count = 100,
             .start_universe = 4,
             .start_address = 1
+        };
+
+        led_strip_t strip_5 = {
+            // Allocate memory for LEDs
+            .leds = malloc(sizeof(led_t) * 50),
+            .led_count = 50,
+            .start_universe = 1,
+            .start_address = 301
         };
 
 
@@ -86,15 +94,19 @@ static void artnet_controller_task(void *pvParameters)
         initialize_led_strip(&strip_2);
         initialize_led_strip(&strip_3);
         initialize_led_strip(&strip_4);
+        initialize_led_strip(&strip_5);
 
+        
         float params_1[] = {3.0f}; // Full hue cycle
-        float params_2[] = {0.0f, 1.0f, 1.0f, 0.1f}; // Full hue cycle
+        float params_2[] = {0.0f, 1.0f, 5.0f, 0.3f}; // Full hue cycle
+        float params_3[] = {120.0f, 0.0f, 1.0f, 0.3f}; // Full hue cycle
 
 
         init_pattern_state(&pattern_states[0], 0, 1.0f, (void *)params_1); // Pattern state for strip 1
         init_pattern_state(&pattern_states[1], 1, 1.0f, (void *)params_1); // Pattern state for strip 2
-        init_pattern_state(&pattern_states[2], 1, 1.0f, (void *)params_1); // Pattern state for strip 3
-        init_pattern_state(&pattern_states[3], 1, 1.0f, (void *)params_1); // Pattern state for strip 4
+        init_pattern_state(&pattern_states[2], 1, 1.8f, (void *)params_1); // Pattern state for strip 3
+        init_pattern_state(&pattern_states[3], 1, 1.8f, (void *)params_1); // Pattern state for strip 4
+        init_pattern_state(&pattern_states[4], 1, 1.0f, (void *)params_1); // Pattern state for strip 4
 
 
         uint32_t last_time = xTaskGetTickCount();
@@ -108,11 +120,13 @@ static void artnet_controller_task(void *pvParameters)
             update_pattern(&pattern_states[1], fire, &strip_2, delta_time);
             update_pattern(&pattern_states[2], fire, &strip_3, delta_time);
             update_pattern(&pattern_states[3], fire, &strip_4, delta_time);
+            update_pattern(&pattern_states[4], fire, &strip_5, delta_time);
 
             set_strip_dmx_data(&strip_1, dmx_data, UNIVERSE_COUNT);
             set_strip_dmx_data(&strip_2, dmx_data, UNIVERSE_COUNT);
             set_strip_dmx_data(&strip_3, dmx_data, UNIVERSE_COUNT);
             set_strip_dmx_data(&strip_4, dmx_data, UNIVERSE_COUNT);
+            set_strip_dmx_data(&strip_5, dmx_data, UNIVERSE_COUNT);
 
             // Send data
             int err = artnet_send_dmx(1, dmx_data[0], ADDRESSES_PER_UNIVERSE);

@@ -14,7 +14,7 @@ void initialize_led(led_t *led, uint16_t id, uint8_t universe, uint16_t dmx_addr
 
 void initialize_led_strip(led_strip_t *strip){
     for (uint16_t i = 0; i < strip->led_count; i++) {
-        initialize_led(&strip->leds[i], i + 1, strip->start_universe + (i * 3) / DMX_DATA_MAX_LENGTH, strip->start_address + (i * 3) % DMX_DATA_MAX_LENGTH);
+        initialize_led(&strip->leds[i], i + 1, strip->start_universe, strip->start_address + (i * 3) % DMX_DATA_MAX_LENGTH);
     }
 }
 

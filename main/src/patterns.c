@@ -65,6 +65,8 @@ void stroboscope(led_strip_t *strip, pattern_state_t *state){
     }
 }
 
+// fire effect
+// pattern_data expected to be float array: [flicker_intensity]
 void fire(led_strip_t *strip, pattern_state_t *state) {
     float flicker_intensity = state->pattern_data ? ((float *)state->pattern_data)[0] : 1.0f;
 
@@ -84,5 +86,18 @@ void fire(led_strip_t *strip, pattern_state_t *state) {
         set_led_color(&strip->leds[i], r, g, 0);
         set_led_brightness(&strip->leds[i], 255);
     }
-    // Fire pattern implementation goes here
+}
+
+void solid_color(led_strip_t *strip, pattern_state_t *state) {
+    float h, s, v;
+    h = state->pattern_data ? ((float *)state->pattern_data)[0] : 0.0f;
+    s = state->pattern_data ? ((float *)state->pattern_data)[1] : 1.0f;
+    v = state->pattern_data ? ((float *)state->pattern_data)[2] : 1.0f;
+
+    uint8_t r, g, b;
+    hsv_to_rgb(h, s, v, &r, &g, &b);
+    for (uint16_t i = 0; i < strip->led_count; i++) {
+        set_led_color(&strip->leds[i], r, g, b);
+        set_led_brightness(&strip->leds[i], 255);
+    }
 }
