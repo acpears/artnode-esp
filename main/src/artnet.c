@@ -13,7 +13,7 @@
 #define ADDRESS_FAMILY AF_INET
 #define IP_PROTOCOL IPPROTO_IP
 
-#define LOG_TAG "artnet.c"
+#define LOG_TAG "artnet"
 
 typedef struct {
     int sock_fd;
@@ -66,7 +66,7 @@ static void print_artnet_packet(const artnet_packet_t *packet) {
 }
 
 int artnet_init(char * destination_ip) {
-    // Initialize destination address
+    // Initialize destination address and socket
     set_socket_dest_addr(destination_ip, ARTNET_PORT);
     artnet_socket.sock_fd = socket(ADDRESS_FAMILY, SOCK_DGRAM, IP_PROTOCOL);
     if (artnet_socket.sock_fd < 0) {
@@ -77,8 +77,8 @@ int artnet_init(char * destination_ip) {
 
 
     // SOCKET OPTIONS
-    int send_buffer_size = 16384;  // 16KB for multiple Art-Net packets
-    int recv_buffer_size = 8192;   // 8KB for incoming data
+    int send_buffer_size = 2048;  // 4KB for multiple Art-Net packets
+    int recv_buffer_size = 1024;   // 1KB for incoming data
     setsockopt(artnet_socket.sock_fd, SOL_SOCKET, SO_SNDBUF, &send_buffer_size, sizeof(send_buffer_size));
     setsockopt(artnet_socket.sock_fd, SOL_SOCKET, SO_RCVBUF, &recv_buffer_size, sizeof(recv_buffer_size));
 
@@ -88,7 +88,6 @@ int artnet_init(char * destination_ip) {
     timeout.tv_usec = 0;
     setsockopt (artnet_socket.sock_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof timeout);
     setsockopt (artnet_socket.sock_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
-
     return 0;
 }
 

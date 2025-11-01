@@ -1,5 +1,4 @@
 #include "network.h"
-#include "handlers.h"
 
 #include "esp_netif.h"
 #include "esp_event.h"
@@ -9,12 +8,78 @@
 #include "ethernet_init.h"
 #include "lwip/sockets.h"
 
-#define CONFIG_LOG_MAXIMUM_LEVEL 3
 #define LOG_TAG "network"
 
 static char* ip = "192.168.0.2";
 static char* gwy = "192.168.0.1";
 static char* nmsk = "255.255.255.0";
+
+static void update_network_ready_status(network_status_t* status) {
+    bool prev_ready = status->network_ready;
+    status->network_ready = status->eth_link_up && status->got_ip;
+    
+    if (!prev_ready && status->network_ready) {
+        ESP_LOGI(LOG_TAG, "🟢 Network is up");
+    } else if (prev_ready && !status->network_ready) {
+        ESP_LOGI(LOG_TAG, "🔴 Network is down");
+    }
+}
+
+static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *data)
+{
+    ip_event_got_ip_t *event = (ip_event_got_ip_t *) data;
+    const esp_netif_ip_info_t *ip_info = &event->ip_info;
+
+    ESP_LOGI(LOG_TAG, "Ethernet Got IP Address: " IPSTR, IP2STR(&ip_info->ip));
+
+    // Update flag
+    network_status_t *network_status = (network_status_t *)arg;
+    network_status->got_ip = true;
+    update_network_ready_status(network_status);
+}
+
+static void lost_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *data)
+{
+    ESP_LOGI(LOG_TAG, "Ethernet Lost IP Address");
+
+    // Update flag
+    network_status_t *network_status = (network_status_t *)arg;
+    network_status->got_ip = false;
+    update_network_ready_status(network_status);
+}
+
+static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *data)
+{
+    uint8_t eth_port = (uint32_t) arg;
+    esp_eth_handle_t eth_handle = *(esp_eth_handle_t *)data;
+
+    // Update flag
+    network_status_t *network_status = (network_status_t *)arg;
+
+    switch (event_id) {
+    case ETHERNET_EVENT_CONNECTED:
+        ESP_LOGI(LOG_TAG, "Ethernet Port %d Link Up", eth_port);
+        network_status->eth_link_up = true;
+        update_network_ready_status(network_status);
+        break;
+    case ETHERNET_EVENT_DISCONNECTED:
+        ESP_LOGI(LOG_TAG, "Ethernet Port %d Link Down", eth_port);
+        network_status->eth_link_up = false;
+        update_network_ready_status(network_status);
+        break;
+    case ETHERNET_EVENT_START:
+        ESP_LOGI(LOG_TAG, "Ethernet Started", eth_port);
+        break;
+    case ETHERNET_EVENT_STOP:
+        ESP_LOGI(LOG_TAG, "Ethernet Stopped", eth_port);
+        network_status->eth_link_up = false;
+        update_network_ready_status(network_status);
+        break;
+    default:
+        break;
+    }
+}
+
 
 static void set_static_ip(esp_netif_t *netif, bool enable_dns)
 {
@@ -44,7 +109,7 @@ static void set_static_ip(esp_netif_t *netif, bool enable_dns)
     esp_netif_set_dns_info(netif, ESP_NETIF_DNS_BACKUP, &dns);
 }
 
-static void init_eth_tcp(bool use_static_ip, bool* got_ip_flag, bool* eth_link_up_flag) {
+static void init_eth_tcp(bool use_static_ip, network_status_t* network_status) {
     // Initialize TCP/IP stack and the event loop
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -63,22 +128,22 @@ static void init_eth_tcp(bool use_static_ip, bool* got_ip_flag, bool* eth_link_u
     }
 
     // Register application event handlers
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, got_ip_event_handler, got_ip_flag));
-    ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, IP_EVENT_ETH_LOST_IP, lost_ip_event_handler, got_ip_flag));
-    ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, eth_event_handler, eth_link_up_flag));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, got_ip_event_handler, network_status));
+    ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, IP_EVENT_ETH_LOST_IP, lost_ip_event_handler, network_status));
+    ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, eth_event_handler, network_status));
 
     // Start Ethernet driver state machine
     ESP_ERROR_CHECK(esp_eth_start(*eth_handles));
 }
 
-void init_network(bool* got_ip_flag, bool* eth_link_up_flag) {
-    init_eth_tcp(false, got_ip_flag, eth_link_up_flag);
+void init_network(network_status_t* network_status) {
+    init_eth_tcp(false, network_status);
 }
 
-void init_network_static_ip(char* static_ip, char* gateway, char* netmask, bool enable_dns, bool* eth_link_up_flag, bool* got_ip_flag) {
+void init_network_static_ip(char* static_ip, char* gateway, char* netmask, bool enable_dns, network_status_t* network_status) {
     ip = static_ip;
     gwy = gateway;
     nmsk = netmask;
 
-    init_eth_tcp(true, got_ip_flag, eth_link_up_flag);
+    init_eth_tcp(true, network_status);
 }

@@ -3,7 +3,33 @@
 #include "led.h"
 
 #include <math.h>
+#include <stddef.h>
 #include <stdbool.h>
+
+// Pattern registry for easy lookup by ID
+const pattern_func_t pattern_functions[] = {
+    fire,           // ID 0
+    rainbow_cycle,  // ID 1
+    stroboscope,    // ID 2
+    solid_color     // ID 3
+};
+
+const char* pattern_names[] = {
+    "Fire",
+    "Rainbow Cycle", 
+    "Stroboscope",
+    "Solid Color"
+};
+
+const uint8_t pattern_count = sizeof(pattern_functions) / sizeof(pattern_functions[0]);
+
+// Helper function to get pattern function by ID
+pattern_func_t get_pattern_function(uint16_t pattern_id) {
+    if (pattern_id >= pattern_count) {
+        return NULL;  // Invalid pattern ID
+    }
+    return pattern_functions[pattern_id];
+}
 
 // Initialize pattern state
 void init_pattern_state(pattern_state_t *state, uint16_t pattern_id, float speed, void *pattern_data) {
@@ -15,15 +41,14 @@ void init_pattern_state(pattern_state_t *state, uint16_t pattern_id, float speed
 }
 
 // Update single pattern
-void update_pattern(pattern_state_t *state, pattern_func_t pattern_func, 
-                   led_strip_t *strip, float delta_time) {
+void update_pattern(pattern_state_t *state, led_strip_t *strip, float delta_time) {
     if (!state->active) return;
     
     // Update pattern's internal time
     state->time += delta_time * state->speed;
-    
-    // Execute pattern
-    pattern_func(strip, state);
+
+    // Execute pattern function
+    get_pattern_function(state->pattern_id)(strip, state);
 }
 
 // rainbow cycle pattern
@@ -65,22 +90,24 @@ void stroboscope(led_strip_t *strip, pattern_state_t *state){
     }
 }
 
-// fire effect
-// pattern_data expected to be float array: [flicker_intensity]
+// ID 2: fire effect
+// pattern_data expected to be float array: [flicker_intensity, yellow_level (0-1]
 void fire(led_strip_t *strip, pattern_state_t *state) {
     float flicker_intensity = state->pattern_data ? ((float *)state->pattern_data)[0] : 1.0f;
+    float yellow_level = state->pattern_data ? ((float *)state->pattern_data)[1] : 0.0f;
 
     for (uint16_t i = 0; i < strip->led_count; i++) {
         // Calculate flicker based on time and LED index with a bit of randomness
         float random_offset = (float)(i * 37 % 100) / 100.0f * 2.0f * M_PI; // Random phase offset
-        float flicker = (sinf(state->time * 10.0f + i + random_offset) + 1.0f) / 2.0f; // Normalize to 0-1
+        float flicker = (sinf((state->time * 5) + (i * 1.2f) + 1.0f) + 1.0f) / 2.0f; // Normalize to 0-1
         flicker = powf(flicker, flicker_intensity); // Adjust intensity
 
         // Map flicker to color gradient from dark red to bright yellow
         uint8_t r = (uint8_t)(flicker * 255);
 
-        uint8_t random_intensity = 56;
-        int8_t random_green = (rand() % random_intensity); // Add some randomness to green channel
+        uint8_t green_default = 255 * yellow_level;
+        uint8_t random_intensity = 10; // Random value between -4 and +4
+        int8_t random_green = green_default +(rand() % random_intensity - (random_intensity / 2)); // Add some randomness to green channel
         uint8_t g = (uint8_t)(flicker * random_green);
 
         set_led_color(&strip->leds[i], r, g, 0);
@@ -88,6 +115,8 @@ void fire(led_strip_t *strip, pattern_state_t *state) {
     }
 }
 
+// ID 3: solid color pattern 
+// pattern_data expected to be float array: [hue, saturation, value]
 void solid_color(led_strip_t *strip, pattern_state_t *state) {
     float h, s, v;
     h = state->pattern_data ? ((float *)state->pattern_data)[0] : 0.0f;
