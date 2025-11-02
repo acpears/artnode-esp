@@ -26,6 +26,7 @@ void rainbow_cycle(led_strip_t *strip, pattern_state_t *state);
 void stroboscope(led_strip_t *strip, pattern_state_t *state);
 void fire(led_strip_t *strip, pattern_state_t *state);
 void solid_color(led_strip_t *strip, pattern_state_t *state);
+void sparkle(led_strip_t *strip, pattern_state_t *state);
 
 // Pattern registry for easy lookup
 extern const pattern_func_t pattern_functions[];

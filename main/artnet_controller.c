@@ -60,7 +60,7 @@ static void artnet_controller_task(void *pvParameters)
             set_led_system_dmx_data(&led_system, dmx_data, UNIVERSE_COUNT);
 
             // Send data
-            int err = artnet_send_dmx_array(dmx_data, ADDRESSES_PER_UNIVERSE);
+            int err = artnet_send_dmx_array(dmx_data, UNIVERSE_COUNT);
             if (err < 0) {
                 ESP_LOGE(LOG_TAG, "Error sending DMX data");
                 break;

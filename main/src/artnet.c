@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
 
@@ -14,6 +15,9 @@
 #define IP_PROTOCOL IPPROTO_IP
 
 #define LOG_TAG "artnet"
+
+// Add this static variable near the top of the file
+static int64_t last_print_time = 0;
 
 typedef struct {
     int sock_fd;
@@ -107,11 +111,11 @@ static void set_arnet_packet_static_content(artnet_packet_t *packet) {
     packet->physical = 0;
 }
 
-static void build_artnet_packet(artnet_packet_t *packet, uint16_t universe, const uint8_t *dmx_data, uint16_t dmx_data_length) {
+static void build_artnet_packet(artnet_packet_t *packet, uint8_t universe, const uint8_t *dmx_data, uint16_t dmx_data_length) {
     set_arnet_packet_static_content(packet);
-
+    
     // Set universe
-    packet->universe = universe-1; // Universe is 0-based in packet
+    packet->universe = htons(universe); // Convert to network byte order
 
     // Set length and copy DMX data
     if (dmx_data_length > DMX_DATA_MAX_LENGTH) {
@@ -125,20 +129,31 @@ static void build_artnet_packet(artnet_packet_t *packet, uint16_t universe, cons
     }
 }
 
-int artnet_send_dmx(uint16_t universe, const uint8_t *dmx_data, uint16_t dmx_data_length) {
+int artnet_send_dmx(uint8_t universe, const uint8_t *dmx_data, uint16_t dmx_data_length) {
     if (artnet_socket.sock_fd < 0) {
         ESP_LOGE(LOG_TAG, "Art-Net socket not initialized!!!");
         return -1;
     }
 
+
     artnet_packet_t packet = {0};
     build_artnet_packet(&packet, universe, dmx_data, dmx_data_length);
 
-    // Send the packet
-    if(CONFIG_LOG_MAXIMUM_LEVEL > 3) print_artnet_packet(&packet);
-    ssize_t sent_bytes = sendto(artnet_socket.sock_fd, &packet, sizeof(artnet_packet_t), 0,
+    size_t packet_size = sizeof(artnet_packet_t) - DMX_DATA_MAX_LENGTH + dmx_data_length;
+
+    if(CONFIG_LOG_MAXIMUM_LEVEL > 3) {
+        int64_t current_time = esp_timer_get_time(); // Get time in microseconds
+        if (current_time - last_print_time >= 1000000) { // 1 second = 1,000,000 microseconds
+            print_artnet_packet(&packet);
+            last_print_time = current_time;
+        }
+    }
+    ssize_t sent_bytes = sendto(artnet_socket.sock_fd, &packet, packet_size, 0,
                                 (struct sockaddr *)&artnet_socket.dest_addr, sizeof(artnet_socket.dest_addr));
     if (sent_bytes < 0) {
+        // Check available memory
+        size_t free_heap = esp_get_free_heap_size();
+        ESP_LOGI(LOG_TAG, "Free heap: %zu bytes", free_heap);
         ESP_LOGE(LOG_TAG, "Error sending artnet packet: errno %d", errno);
         return -1;
     }
@@ -146,8 +161,8 @@ int artnet_send_dmx(uint16_t universe, const uint8_t *dmx_data, uint16_t dmx_dat
 }
 
 // arnet send which takes a n x 512 byte dmx data array
-int artnet_send_dmx_array(const uint8_t dmx_data_array[][DMX_DATA_MAX_LENGTH], uint16_t num_universes) {
-    for (uint16_t i = 0; i < num_universes; i++) {
+int artnet_send_dmx_array(const uint8_t dmx_data_array[][DMX_DATA_MAX_LENGTH], uint8_t num_universes) {
+    for (uint8_t i = 0; i < num_universes; i++) {
         if (artnet_send_dmx(i, dmx_data_array[i], DMX_DATA_MAX_LENGTH) < 0) {
             ESP_LOGE(LOG_TAG, "Failed to send DMX data for universe %d", i);
             return -1;

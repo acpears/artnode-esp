@@ -14,7 +14,7 @@ void initialize_led(led_t *led, uint16_t id, uint8_t universe, uint16_t dmx_addr
 
 void initialize_led_strip(led_strip_t *strip){
     for (uint16_t i = 0; i < strip->led_count; i++) {
-        initialize_led(&strip->leds[i], i + 1, strip->start_universe, strip->start_address + (i * 3) % DMX_DATA_MAX_LENGTH);
+        initialize_led(&strip->leds[i], i + 1, strip->start_universe + ((i + 1) / DMX_DATA_MAX_LENGTH), strip->start_address + (i * 3) % DMX_DATA_MAX_LENGTH);
     }
 }
 
@@ -42,7 +42,7 @@ void set_led_brightness(led_t *led, uint8_t brightness) {
 
 void set_dmx_data(led_t *led, uint8_t dmx_data[][DMX_DATA_MAX_LENGTH], uint8_t num_universes) {
 
-    uint8_t universe = led->universe - 1;
+    uint8_t universe = led->universe - 1; // DMX universes are 1-based
     uint16_t address = led->dmx_address - 1; // DMX addresses are 1-based
 
     // Bounds check to prevent array overflow

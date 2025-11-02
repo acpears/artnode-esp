@@ -11,14 +11,16 @@ const pattern_func_t pattern_functions[] = {
     fire,           // ID 0
     rainbow_cycle,  // ID 1
     stroboscope,    // ID 2
-    solid_color     // ID 3
+    solid_color,     // ID 3
+    sparkle,        // ID 4
 };
 
 const char* pattern_names[] = {
     "Fire",
     "Rainbow Cycle", 
     "Stroboscope",
-    "Solid Color"
+    "Solid Color",
+    "Sparkle"
 };
 
 const uint8_t pattern_count = sizeof(pattern_functions) / sizeof(pattern_functions[0]);
@@ -128,5 +130,34 @@ void solid_color(led_strip_t *strip, pattern_state_t *state) {
     for (uint16_t i = 0; i < strip->led_count; i++) {
         set_led_color(&strip->leds[i], r, g, b);
         set_led_brightness(&strip->leds[i], 255);
+    }
+}
+
+// ID 4: Sparkle pattern
+// pattern_data expected to be float array: [sparkle_chance(0-1), hue(0-360), saturation (0-1), background_hue(0-360), background_saturation(0-1), background_level(0-1)]
+void sparkle(led_strip_t *strip, pattern_state_t *state) {
+    float sparkle_chance = state->pattern_data ? ((float *)state->pattern_data)[0] : 0.5f; // Chance of sparkle per LED
+    float sparkle_hue = state->pattern_data ? ((float *)state->pattern_data)[1] : 0.0f;
+    float sparkle_saturation = state->pattern_data ? ((float *)state->pattern_data)[2] : 0.0f;
+    float background_hue = state->pattern_data ? ((float *)state->pattern_data)[3] : 0.0f;
+    float background_saturation = state->pattern_data ? ((float *)state->pattern_data)[4] : 0.0f;
+    float background_level = state->pattern_data ? ((float *)state->pattern_data)[5] : 0.1f;
+    bool inverted = false;
+
+    uint8_t r, g, b;
+    uint8_t background_brightness = (uint8_t)(background_level * 255);
+
+    for (uint16_t i = 0; i < strip->led_count; i++) {
+        float random_value = (float)(rand() % 1000) / 1000.0f; // Random value between 0 and 1
+    
+        if (random_value < log10f(sparkle_chance/20 + 1)) {
+            hsv_to_rgb(sparkle_hue, sparkle_saturation, 1.0f, &r, &g, &b);
+            set_led_color(&strip->leds[i], r, g, b);
+            set_led_brightness(&strip->leds[i], inverted ? background_brightness : 255);
+        } else {
+            hsv_to_rgb(background_hue, background_saturation, 1.0f, &r, &g, &b);
+            set_led_color(&strip->leds[i], r, g, b);
+            set_led_brightness(&strip->leds[i], inverted ? 255 : background_brightness);
+        }
     }
 }

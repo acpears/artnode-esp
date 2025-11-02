@@ -13,6 +13,7 @@ void init_led_system(led_system_t* led_system) {
     }
 
     led_system->strip_count = led_strip_config_count;
+    ESP_LOGI(LOG_TAG, "Initializing LED system with %d strips", led_system->strip_count);
     for(uint8_t i = 0; i < led_system->strip_count; i++) {
         const led_strip_config_t* config = &led_strip_configs[i];
         led_strip_t* strip = led_system->strips + i;
@@ -35,6 +36,7 @@ void init_led_system(led_system_t* led_system) {
 }
 
 void cleanup_led_system(led_system_t* led_system) {
+    ESP_LOGI(LOG_TAG, "Cleaning up LED system");
     if (!led_system->initialized) {
         ESP_LOGE(LOG_TAG, "Cleanup skipped: LED system not initialized");
         return; // Not initialized

@@ -6,7 +6,7 @@
 typedef struct {
     // strip configuration
     uint16_t led_count;
-    uint8_t start_universe;
+    uint16_t start_universe;
     uint16_t start_address;
 
     // pattern configuration
