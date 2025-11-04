@@ -1,8 +1,21 @@
 idf_build_get_property(target IDF_TARGET)
-set(priv_requires "")
 
+# Required components for all targets
+set(priv_requires 
+    nvs_flash 
+    esp_event 
+    esp_netif 
+    lwip 
+    esp_http_server 
+    esp_wifi
+    esp_eth
+    esp_timer
+    log
+)
+
+# Add target-specific requirements if needed
 if(${target} STREQUAL "linux")
-    list(APPEND priv_requires nvs_flash esp_event esp_netif lwip)
+    # Linux-specific components can be added here if needed
 endif()
 
 # Automatically find all .c files

@@ -8,3 +8,5 @@ dependencies:
     rules:
     - if: target not in [linux]
   espressif/ethernet_init: ^1.0.0
+  espressif/esp_hosted: ^2.6.4
+  espressif/esp_wifi_remote: ^1.2.0
