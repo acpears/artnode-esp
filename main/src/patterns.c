@@ -34,12 +34,13 @@ pattern_func_t get_pattern_function(uint16_t pattern_id) {
 }
 
 // Initialize pattern state
-void init_pattern_state(pattern_state_t *state, uint16_t pattern_id, float speed, void *pattern_data) {
+void init_pattern_state(pattern_state_t *state, uint16_t pattern_id, float speed, void *pattern_data, http_controller_state_t *controller_state) {
     state->pattern_id = pattern_id;
     state->time = 0.0f;
     state->speed = speed;
     state->active = true;
     state->pattern_data = pattern_data;
+    state->controller_state = controller_state;
 }
 
 // Update single pattern
@@ -53,7 +54,9 @@ void update_pattern(pattern_state_t *state, led_strip_t *strip, float delta_time
     get_pattern_function(state->pattern_id)(strip, state);
 }
 
-// rainbow cycle pattern
+// PATTERNS
+
+// ID 0:rainbow cycle pattern
 // pattern_data expected to be float array: [color_width]
 void rainbow_cycle(led_strip_t *strip, pattern_state_t *state) {
     float color_width = state->pattern_data ? ((float *)state->pattern_data)[0] : 1.0f; // Full hue cycle
@@ -68,7 +71,7 @@ void rainbow_cycle(led_strip_t *strip, pattern_state_t *state) {
     }
 }
 
-// stroboscope pattern
+// ID 1: stroboscope pattern
 // pattern_data expected to be float array: [hue, saturation, value, flash_on_off_ratio]
 void stroboscope(led_strip_t *strip, pattern_state_t *state){
     float h, s, v;
@@ -125,6 +128,14 @@ void solid_color(led_strip_t *strip, pattern_state_t *state) {
     s = state->pattern_data ? ((float *)state->pattern_data)[1] : 1.0f;
     v = state->pattern_data ? ((float *)state->pattern_data)[2] : 1.0f;
 
+    if(state->controller_state && state->controller_state->slider[0] > 0) {
+        h = ((float)state->controller_state->slider[0] * 360.0f) / 255.0f; // Map slider 0 (0-255) to hue (0-360)
+    }
+
+    if(state->controller_state && state->controller_state->slider[1] > 0) {
+        v = (float)state->controller_state->slider[1] / 255.0f; // Map slider 1 (0-255) to value (0-1)
+    }
+
     uint8_t r, g, b;
     hsv_to_rgb(h, s, v, &r, &g, &b);
     for (uint16_t i = 0; i < strip->led_count; i++) {
@@ -143,6 +154,16 @@ void sparkle(led_strip_t *strip, pattern_state_t *state) {
     float background_saturation = state->pattern_data ? ((float *)state->pattern_data)[4] : 0.0f;
     float background_level = state->pattern_data ? ((float *)state->pattern_data)[5] : 0.1f;
     bool inverted = false;
+
+    float sparkle_hues[] = {0.0f, 60.0f, 120.0f, 180.0f, 240.0f, 300.0f};
+    for(int i = 0; i < 6; i++) {
+        if(state->controller_state && state->controller_state->row[0][i]) {
+            sparkle_hue = sparkle_hues[i];
+        }
+        if(state->controller_state && state->controller_state->row[1][i]) {
+            background_hue = sparkle_hues[i];
+        }
+    }
 
     uint8_t r, g, b;
     uint8_t background_brightness = (uint8_t)(background_level * 255);

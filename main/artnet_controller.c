@@ -33,12 +33,11 @@ static uint8_t dmx_data[UNIVERSE_COUNT][ADDRESSES_PER_UNIVERSE] = {0};
 static led_system_t led_system = {0};
 
 // HTTP controller state
-static http_controller_state_t* controller_state_global = NULL;
+static http_controller_state_t controller_state_global = {0};
 
 
 // Cleanup function
 static void cleanup(){
-    free(controller_state_global);
     cleanup_led_system(&led_system);
     artnet_close();
 }
@@ -59,7 +58,7 @@ static void artnet_controller_task(void *pvParameters)
         }
 
         // Initialize LED system
-        init_led_system(&led_system);
+        init_led_system(&led_system, &controller_state_global);
 
         uint32_t last_time = xTaskGetTickCount();
         while (1) {
@@ -98,7 +97,7 @@ void app_main(void)
 
     init_wifi(&wifi_status);
     init_ethernet_static_ip("192.168.0.2", "192.168.0.1", "255.255.255.0", false, &network_status);
-    init_http_server(&wifi_status, controller_state_global);
+    init_http_server(&wifi_status, &controller_state_global);
 
     xTaskCreate(artnet_controller_task, "artnet_controller_task", 16384, NULL, 5, NULL);
 }

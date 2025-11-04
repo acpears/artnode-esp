@@ -2,6 +2,7 @@
 
 // Pattern parameters
 static float params1[] = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.01f};
+static float params2[] = {0.0f, 1.0f, 1.0f};
 
 // LED strip configurations
 const led_strip_config_t led_strip_configs[] = {

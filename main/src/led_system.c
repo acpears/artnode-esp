@@ -7,7 +7,7 @@
 
 #define LOG_TAG "led_system"
 
-void init_led_system(led_system_t* led_system) {
+void init_led_system(led_system_t* led_system, http_controller_state_t* controller_state) {
     if (led_system->initialized) {
         return; // Already initialized
     }
@@ -30,7 +30,7 @@ void init_led_system(led_system_t* led_system) {
             ESP_LOGE(LOG_TAG, "Skipping invalid strip %d. Invalid pattern ID %d", i, config->pattern_id);
             continue;
         }
-        init_pattern_state(&led_system->pattern_states[i], config->pattern_id, config->speed, config->pattern_params);
+        init_pattern_state(&led_system->pattern_states[i], config->pattern_id, config->speed, config->pattern_params, controller_state);
     }
     led_system->initialized = true;
 }
