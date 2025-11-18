@@ -33,9 +33,10 @@ void init_led_system(led_system_t* led_system);
 void cleanup_led_system(led_system_t* led_system);
 void update_pattern_state_pattern_id(led_system_t* led_system, uint8_t group_index, uint16_t pattern_id);
 void update_led_system_patterns(led_system_t* led_system, float delta_time);
-void set_led_system_dmx_data(led_system_t* led_system, uint8_t dmx_data[][512], uint16_t universes);
+void set_led_system_dmx_data(led_system_t* led_system, uint8_t dmx_data_array[][512], uint8_t dmx_data_array_length);
 
 // Getters
 controller_state_t* get_led_system_controller_state(led_system_t* led_system);
+uint8_t get_led_system_universe_count(led_system_t* led_system);
 
 #endif // LED_SYSTEM_H

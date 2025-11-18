@@ -138,13 +138,13 @@ void update_led_system_patterns(led_system_t* led_system, float delta_time) {
 }
 
 // Method to set DMX data for all LED strips in the system
-void set_led_system_dmx_data(led_system_t* led_system, uint8_t dmx_data[][512], uint16_t universes) {
+void set_led_system_dmx_data(led_system_t* led_system, uint8_t dmx_data_array[][512], uint8_t dmx_data_array_length) {
     if (!led_system || !led_system->initialized) {
         ESP_LOGE(LOG_TAG, "Set DMX data skipped: LED system not initialized");
         return;
     }
     for(uint8_t i = 0; i < led_system->group_count; i++){
-        set_strip_dmx_data(&led_system->groups[i], dmx_data, universes);
+        set_strip_dmx_data(&led_system->groups[i], dmx_data_array, dmx_data_array_length);
     }
 }
 
@@ -305,4 +305,21 @@ static void load_pattern_id_from_nvs(pattern_state_t* pattern_state, uint8_t pat
     }
     nvs_close(nvs_handle);
     return;
-}   
+}
+
+// Get the number of universes used by the LED system
+uint8_t get_led_system_universe_count(led_system_t* led_system) {
+    if (!led_system || !led_system->initialized) {
+        ESP_LOGE(LOG_TAG, "Get universe count skipped: LED system not initialized");
+        return 0;
+    }
+    uint8_t max_universe = 0;
+    for (uint8_t i = 0; i < led_system->group_count; i++) {
+        led_strip_t* strip = &led_system->groups[i];
+        uint8_t strip_end_universe = strip->start_universe + ((strip->start_address + (strip->led_count * 3) - 1) / DMX_DATA_MAX_LENGTH);
+        if (strip_end_universe > max_universe) {
+            max_universe = strip_end_universe;
+        }
+    }
+    return max_universe;
+}

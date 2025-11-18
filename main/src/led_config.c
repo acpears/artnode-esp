@@ -4,22 +4,40 @@
 const led_strip_config_t led_strip_configs[] = {
     {
         .name = "Strip 1",
-        .led_count = 25,
+        .led_count = 50,
         .start_universe = 1,
         .start_address = 1,
-        .pattern_id = 0, 
+        .pattern_id = 5, 
         .speed = 0.5f,
         .brightness = 1.0f
     },
     {
         .name = "Strip 2",
-        .led_count = 25,
-        .start_universe = 1,
-        .start_address = 76,
-        .pattern_id = 1, 
+        .led_count = 50,
+        .start_universe = 2,
+        .start_address = 1,
+        .pattern_id = 5, 
         .speed = 0.5f,
         .brightness = 1.0f
     },
+    {
+        .name = "Strip 3",
+        .led_count = 50,
+        .start_universe = 3,
+        .start_address = 1,
+        .pattern_id = 5, 
+        .speed = 0.5f,
+        .brightness = 1.0f
+    },
+    {
+        .name = "Strip 4",
+        .led_count = 50,
+        .start_universe = 4,
+        .start_address = 1,
+        .pattern_id = 5, 
+        .speed = 0.5f,
+        .brightness = 1.0f
+    }
 
 };
 

@@ -81,8 +81,8 @@ int artnet_init(char * destination_ip) {
 
 
     // SOCKET OPTIONS
-    int send_buffer_size = 2048;  // 4KB for multiple Art-Net packets
-    int recv_buffer_size = 1024;   // 1KB for incoming data
+    int send_buffer_size = 550;  // 550 for multiple Art-Net packets
+    int recv_buffer_size = 100;   // 100 bytes for incoming data
     setsockopt(artnet_socket.sock_fd, SOL_SOCKET, SO_SNDBUF, &send_buffer_size, sizeof(send_buffer_size));
     setsockopt(artnet_socket.sock_fd, SOL_SOCKET, SO_RCVBUF, &recv_buffer_size, sizeof(recv_buffer_size));
 
@@ -115,7 +115,7 @@ static void build_artnet_packet(artnet_packet_t *packet, uint8_t universe, const
     set_arnet_packet_static_content(packet);
     
     // Set universe
-    packet->universe = htons(universe); // Convert to network byte order
+    packet->universe = universe; // Convert to network byte order
 
     // Set length and copy DMX data
     if (dmx_data_length > DMX_DATA_MAX_LENGTH) {
@@ -151,9 +151,6 @@ int artnet_send_dmx(uint8_t universe, const uint8_t *dmx_data, uint16_t dmx_data
     ssize_t sent_bytes = sendto(artnet_socket.sock_fd, &packet, packet_size, 0,
                                 (struct sockaddr *)&artnet_socket.dest_addr, sizeof(artnet_socket.dest_addr));
     if (sent_bytes < 0) {
-        // Check available memory
-        size_t free_heap = esp_get_free_heap_size();
-        ESP_LOGI(LOG_TAG, "Free heap: %zu bytes", free_heap);
         ESP_LOGE(LOG_TAG, "Error sending artnet packet: errno %d", errno);
         return -1;
     }
@@ -161,8 +158,8 @@ int artnet_send_dmx(uint8_t universe, const uint8_t *dmx_data, uint16_t dmx_data
 }
 
 // arnet send which takes a n x 512 byte dmx data array
-int artnet_send_dmx_array(const uint8_t dmx_data_array[][DMX_DATA_MAX_LENGTH], uint8_t num_universes) {
-    for (uint8_t i = 0; i < num_universes; i++) {
+int artnet_send_dmx_array(const uint8_t dmx_data_array[][DMX_DATA_MAX_LENGTH], uint8_t num_universes_to_send) {
+    for (uint8_t i = 0; i < num_universes_to_send; i++) {
         if (artnet_send_dmx(i, dmx_data_array[i], DMX_DATA_MAX_LENGTH) < 0) {
             ESP_LOGE(LOG_TAG, "Failed to send DMX data for universe %d", i);
             return -1;

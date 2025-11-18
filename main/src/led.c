@@ -1,6 +1,7 @@
 #include "led.h"
 
 #include <stdint.h>
+#include "esp_log.h"
 
 void initialize_led(led_t *led, uint16_t id, uint8_t universe, uint16_t dmx_address) {
     led->id = id;
@@ -41,13 +42,13 @@ void set_led_brightness(led_t *led, uint8_t brightness) {
     led->state.brightness = brightness;
 }
 
-void set_dmx_data(led_t *led, uint8_t dmx_data[][DMX_DATA_MAX_LENGTH], uint8_t num_universes) {
+void set_dmx_data(led_t *led, uint8_t dmx_data_array[][DMX_DATA_MAX_LENGTH], uint8_t dmx_data_array_length) {
 
     uint8_t universe = led->universe - 1; // DMX universes are 1-based
     uint16_t address = led->dmx_address - 1; // DMX addresses are 1-based
 
     // Bounds check to prevent array overflow
-    if (universe >= num_universes) {
+    if (universe >= dmx_data_array_length) {
         return;  // Ignore if universe is out of range
     }
 
@@ -57,14 +58,14 @@ void set_dmx_data(led_t *led, uint8_t dmx_data[][DMX_DATA_MAX_LENGTH], uint8_t n
 
     // Use proper scaling with rounding
     // Cast to uint16_t to prevent overflow, then divide
-    dmx_data[universe][address]     = ((uint16_t)led->state.color.r * led->state.brightness + 127) / 255;
-    dmx_data[universe][address + 1] = ((uint16_t)led->state.color.g * led->state.brightness + 127) / 255;
-    dmx_data[universe][address + 2] = ((uint16_t)led->state.color.b * led->state.brightness + 127) / 255;
+    dmx_data_array[universe][address]     = ((uint16_t)led->state.color.r * led->state.brightness + 127) / 255;
+    dmx_data_array[universe][address + 1] = ((uint16_t)led->state.color.g * led->state.brightness + 127) / 255;
+    dmx_data_array[universe][address + 2] = ((uint16_t)led->state.color.b * led->state.brightness + 127) / 255;
 }
 
-void set_strip_dmx_data(led_strip_t *strip, uint8_t dmx_data[][DMX_DATA_MAX_LENGTH], uint8_t num_universes) {
+void set_strip_dmx_data(led_strip_t *strip, uint8_t dmx_data_array[][DMX_DATA_MAX_LENGTH], uint8_t dmx_data_array_length) {
     for (uint16_t i = 0; i < strip->led_count; i++) {
         strip->leds[i].state.brightness = strip->leds[i].state.brightness * (1.0f * strip->brightness / 255.0f);
-        set_dmx_data(&strip->leds[i], dmx_data, num_universes);
+        set_dmx_data(&strip->leds[i], dmx_data_array, dmx_data_array_length);
     }
 }

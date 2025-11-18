@@ -17,7 +17,7 @@
 
 #define HOST_IP_ADDR "192.168.0.21"
 
-#define UNIVERSE_COUNT 4
+#define UNIVERSE_COUNT 20
 #define ADDRESSES_PER_UNIVERSE 512
 
 static const char *LOG_TAG = "artnet-client";
@@ -45,7 +45,6 @@ static void artnet_controller_task(void *pvParameters)
         while(network_status.network_ready == false) {
             ESP_LOGI(LOG_TAG, "Waiting for network to be ready...");
             vTaskDelay(pdMS_TO_TICKS(1000));
-
         }
 
         while(artnet_init(HOST_IP_ADDR) < 0) {
@@ -53,10 +52,15 @@ static void artnet_controller_task(void *pvParameters)
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
 
+        ESP_LOGI(LOG_TAG, "Network ready and Art-Net initialized");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+
         // Initialize LED system
         init_led_system(&led_system);
 
         uint32_t last_time = xTaskGetTickCount();
+
+        // Main loop
         while (1) {
             // Time management
             uint32_t current_time = xTaskGetTickCount();
@@ -70,7 +74,7 @@ static void artnet_controller_task(void *pvParameters)
             set_led_system_dmx_data(&led_system, dmx_data, UNIVERSE_COUNT);
 
             // Send data
-            int err = artnet_send_dmx_array(dmx_data, UNIVERSE_COUNT);
+            int err = artnet_send_dmx_array(dmx_data, get_led_system_universe_count(&led_system));
             if (err < 0) {
                 ESP_LOGE(LOG_TAG, "Error sending DMX data");
                 break;
@@ -94,8 +98,6 @@ void app_main(void)
 
     init_wifi(&wifi_status);
     init_ethernet_static_ip("192.168.0.2", "192.168.0.1", "255.255.255.0", false, &network_status);
-
-    vTaskDelay(pdMS_TO_TICKS(6000)); // Wait for network to stabilize
     init_http_server(&wifi_status, &led_system);
 
     xTaskCreate(artnet_controller_task, "artnet_controller_task", 16384, NULL, 5, NULL);

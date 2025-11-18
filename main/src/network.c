@@ -115,29 +115,75 @@ static void set_eth_static_ip(esp_netif_t *netif, bool enable_dns)
 
 // Initialize Ethernet with TCP/IP stack
 static void init_eth_tcp(bool use_static_ip, network_status_t* network_status) {
+    esp_err_t err;
+    
     // Initialize TCP/IP stack
-    ESP_ERROR_CHECK(esp_netif_init());
+    err = esp_netif_init();
+    if (err != ESP_OK) {
+        ESP_LOGE(LOG_TAG, "Failed to initialize netif: %s", esp_err_to_name(err));
+        return;
+    }
 
     // Initialize Ethernet driver
     uint8_t eth_port_cnt = 0;
     esp_eth_handle_t *eth_handles;
-    ESP_ERROR_CHECK(ethernet_init_all(&eth_handles, &eth_port_cnt));
+    err = ethernet_init_all(&eth_handles, &eth_port_cnt);
+    if (err != ESP_OK) {
+        ESP_LOGE(LOG_TAG, "Failed to initialize Ethernet: %s", esp_err_to_name(err));
+        return;
+    }
 
-    // Create new netif instance for Ethernet and attach the Ethernet driver
+    // Check if any Ethernet ports were initialized
+    if (eth_port_cnt == 0) {
+        ESP_LOGE(LOG_TAG, "No Ethernet ports found");
+        return;
+    }
+
+     // Create new netif instance for Ethernet
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
     esp_netif_t *eth_netif = esp_netif_new(&cfg);
-    ESP_ERROR_CHECK(esp_netif_attach(eth_netif, esp_eth_new_netif_glue(*eth_handles)));
+    if (eth_netif == NULL) {
+        ESP_LOGE(LOG_TAG, "Failed to create Ethernet netif");
+        return;
+    }
+
+    // Attach the Ethernet driver to netif
+    err = esp_netif_attach(eth_netif, esp_eth_new_netif_glue(*eth_handles));
+    if (err != ESP_OK) {
+        ESP_LOGE(LOG_TAG, "Failed to attach Ethernet driver: %s", esp_err_to_name(err));
+        esp_netif_destroy(eth_netif);
+        return;
+    }
+
+    // Register event handlers
+    err = esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, got_ip_event_handler, network_status);
+    if (err != ESP_OK) {
+        ESP_LOGE(LOG_TAG, "Failed to register IP event handler: %s", esp_err_to_name(err));
+    }
+    
+    err = esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_LOST_IP, lost_ip_event_handler, network_status);
+    if (err != ESP_OK) {
+        ESP_LOGE(LOG_TAG, "Failed to register IP lost event handler: %s", esp_err_to_name(err));
+    }
+    
+    err = esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, eth_event_handler, network_status);
+    if (err != ESP_OK) {
+        ESP_LOGE(LOG_TAG, "Failed to register Ethernet event handler: %s", esp_err_to_name(err));
+    }
+
+    // Configure static IP
     if (use_static_ip) {
         set_eth_static_ip(eth_netif, false);
     }
 
-    // Register application event handlers
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, got_ip_event_handler, network_status));
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_LOST_IP, lost_ip_event_handler, network_status));
-    ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, eth_event_handler, network_status));
-
-    // Start Ethernet driver state machine
-    ESP_ERROR_CHECK(esp_eth_start(*eth_handles));
+    // Start Ethernet driver state machine (do this last)
+    err = esp_eth_start(*eth_handles);
+    if (err != ESP_OK) {
+        ESP_LOGE(LOG_TAG, "Failed to start Ethernet: %s", esp_err_to_name(err));
+        return;
+    }
+    
+    ESP_LOGI(LOG_TAG, "Ethernet initialized successfully");
 }
 
 void init_ethernet(network_status_t* network_status) {
