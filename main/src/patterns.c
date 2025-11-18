@@ -1,54 +1,19 @@
+#include <math.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <string.h>
+
 #include "patterns.h"
 #include "colours.h"
 #include "led.h"
 
-#include <math.h>
-#include <stddef.h>
-#include <stdbool.h>
-
-// Pattern registry for easy lookup by ID
-const pattern_func_t pattern_functions[] = {
-    fire,           // ID 0
-    rainbow_cycle,  // ID 1
-    stroboscope,    // ID 2
-    solid_color,     // ID 3
-    sparkle,        // ID 4
-};
-
-const char* pattern_names[] = {
-    "Fire",
-    "Rainbow Cycle", 
-    "Stroboscope",
-    "Solid Color",
-    "Sparkle"
-};
-
-const uint8_t pattern_count = sizeof(pattern_functions) / sizeof(pattern_functions[0]);
-
-// Helper function to get pattern function by ID
-pattern_func_t get_pattern_function(uint16_t pattern_id) {
-    if (pattern_id >= pattern_count) {
-        return NULL;  // Invalid pattern ID
-    }
-    return pattern_functions[pattern_id];
-}
-
-// Initialize pattern state
-void init_pattern_state(pattern_state_t *state, uint16_t pattern_id, float speed, void *pattern_data, http_controller_state_t *controller_state) {
-    state->pattern_id = pattern_id;
-    state->time = 0.0f;
-    state->speed = speed;
-    state->active = true;
-    state->pattern_data = pattern_data;
-    state->controller_state = controller_state;
-}
 
 // Update single pattern
 void update_pattern(pattern_state_t *state, led_strip_t *strip, float delta_time) {
     if (!state->active) return;
     
     // Update pattern's internal time
-    state->time += delta_time * state->speed;
+    state->time += delta_time;
 
     // Execute pattern function
     get_pattern_function(state->pattern_id)(strip, state);
@@ -56,30 +21,62 @@ void update_pattern(pattern_state_t *state, led_strip_t *strip, float delta_time
 
 // PATTERNS
 
+// Pattern function parameters
+const pattern_param_t rainbow_cycle_params[] = {
+    {"color_width", 1.0f, 0.1f, 5.0f, 1.0f, false, false},
+    {"saturation", 1.0f, 0.0f, 1.0f, 1.0f, false, true},
+    {"brightness", 1.0f, 0.0f, 1.0f, 1.0f, false, true}
+};
+const pattern_param_t stroboscope_params[] = {
+    {"flash_on_off_ratio", 0.5f, 0.0f, 1.0f, 0.5f, false, false},
+    {"hue", 0.0f, 0.0f, 360.0f, 0.0f, false, true},
+    {"saturation", 1.0f, 0.0f, 1.0f, 1.0f, false, true},
+    {"value", 1.0f, 0.0f, 1.0f, 1.0f, false, true}
+};
+const pattern_param_t fire_params[] = {
+    {"flicker_intensity", 1.0f, 0.1f, 5.0f, 1.0f, false, false},
+    {"yellow_level", 0.0f, 0.0f, 1.0f, 0.0f, false, true}
+};
+const pattern_param_t solid_color_params[] = {
+    {"hue", 0.0f, 0.0f, 360.0f, 0.0f, false, true},
+    {"saturation", 1.0f, 0.0f, 1.0f, 1.0f, false, true},
+    {"value", 1.0f, 0.0f, 1.0f, 1.0f, false, true}
+};
+const pattern_param_t sparkle_params[] = {
+    {"sparkle_chance", 0.5f, 0.0f, 1.0f, 0.5f, false, false},
+    {"sparkle_hue", 0.0f, 0.0f, 360.0f, 0.0f, false, true},
+    {"sparkle_saturation", 0.0f, 0.0f, 1.0f, 0.0f, false, true},
+    {"sparkle_brightness", 1.0f, 0.0f, 1.0f, 0.0f, false, true},
+    {"background_hue", 0.0f, 0.0f, 360.0f, 0.0f, false, true},
+    {"background_saturation", 1.0f, 0.0f, 1.0f, 1.0f, false, true},
+    {"background_brightness", 0.5f, 0.0f, 1.0f, 0.5f, false, true}
+};
+
 // ID 0:rainbow cycle pattern
-// pattern_data expected to be float array: [color_width]
 void rainbow_cycle(led_strip_t *strip, pattern_state_t *state) {
-    float color_width = state->pattern_data ? ((float *)state->pattern_data)[0] : 1.0f; // Full hue cycle
+    float color_width = state->params[0].value;
+    float saturation = state->params[1].value;
+    uint8_t brightness = state->params[2].value * 255.0f;
+    
     for (uint16_t i = 0; i < strip->led_count; i++) {
         float hue = sinf((state->time * state->speed) + ((float)i / strip->led_count) * color_width * M_PI) * 180.0f + 180.0f;
 
         uint8_t r, g, b;
-        hsv_to_rgb(hue, 1.0f, 1.0f, &r, &g, &b);
+        hsv_to_rgb(hue, saturation, 1.0f, &r, &g, &b);
         
         set_led_color(&strip->leds[i], r, g, b);
-        set_led_brightness(&strip->leds[i], 255);
+        set_led_brightness(&strip->leds[i], brightness);
     }
 }
 
 // ID 1: stroboscope pattern
-// pattern_data expected to be float array: [hue, saturation, value, flash_on_off_ratio]
 void stroboscope(led_strip_t *strip, pattern_state_t *state){
+    float flash_on_off_ratio = state->params[0].value;
     float h, s, v;
-    h = state->pattern_data ? ((float *)state->pattern_data)[0] : 0.0f;
-    s = state->pattern_data ? ((float *)state->pattern_data)[1] : 1.0f;
-    v = state->pattern_data ? ((float *)state->pattern_data)[2] : 1.0f;
+    h = state->params[1].value * 360.0f;
+    s = state->params[2].value;
+    v = state->params[3].value;
 
-    float flash_on_off_ratio = state->pattern_data ? ((float *)state->pattern_data)[3] : 0.5f; // Default 50% on/off
     float flash_duration = 1.0f / state->speed; // Duration of the flash in seconds
     float off_duration = flash_duration * flash_on_off_ratio;
 
@@ -96,10 +93,9 @@ void stroboscope(led_strip_t *strip, pattern_state_t *state){
 }
 
 // ID 2: fire effect
-// pattern_data expected to be float array: [flicker_intensity, yellow_level (0-1]
 void fire(led_strip_t *strip, pattern_state_t *state) {
-    float flicker_intensity = state->pattern_data ? ((float *)state->pattern_data)[0] : 1.0f;
-    float yellow_level = state->pattern_data ? ((float *)state->pattern_data)[1] : 0.0f;
+    float flicker_intensity = state->params[0].value;
+    float yellow_level = state->params[1].value;
 
     for (uint16_t i = 0; i < strip->led_count; i++) {
         // Calculate flicker based on time and LED index with a bit of randomness
@@ -120,21 +116,12 @@ void fire(led_strip_t *strip, pattern_state_t *state) {
     }
 }
 
-// ID 3: solid color pattern 
-// pattern_data expected to be float array: [hue, saturation, value]
+// ID 3: solid color pattern
 void solid_color(led_strip_t *strip, pattern_state_t *state) {
     float h, s, v;
-    h = state->pattern_data ? ((float *)state->pattern_data)[0] : 0.0f;
-    s = state->pattern_data ? ((float *)state->pattern_data)[1] : 1.0f;
-    v = state->pattern_data ? ((float *)state->pattern_data)[2] : 1.0f;
-
-    if(state->controller_state && state->controller_state->slider[0] > 0) {
-        h = ((float)state->controller_state->slider[0] * 360.0f) / 255.0f; // Map slider 0 (0-255) to hue (0-360)
-    }
-
-    if(state->controller_state && state->controller_state->slider[1] > 0) {
-        v = (float)state->controller_state->slider[1] / 255.0f; // Map slider 1 (0-255) to value (0-1)
-    }
+    h = state->params[0].value * 360.0f;
+    s = state->params[1].value;
+    v = state->params[2].value;
 
     uint8_t r, g, b;
     hsv_to_rgb(h, s, v, &r, &g, &b);
@@ -145,40 +132,94 @@ void solid_color(led_strip_t *strip, pattern_state_t *state) {
 }
 
 // ID 4: Sparkle pattern
-// pattern_data expected to be float array: [sparkle_chance(0-1), hue(0-360), saturation (0-1), background_hue(0-360), background_saturation(0-1), background_level(0-1)]
 void sparkle(led_strip_t *strip, pattern_state_t *state) {
-    float sparkle_chance = state->pattern_data ? ((float *)state->pattern_data)[0] : 0.5f; // Chance of sparkle per LED
-    float sparkle_hue = state->pattern_data ? ((float *)state->pattern_data)[1] : 0.0f;
-    float sparkle_saturation = state->pattern_data ? ((float *)state->pattern_data)[2] : 0.0f;
-    float background_hue = state->pattern_data ? ((float *)state->pattern_data)[3] : 0.0f;
-    float background_saturation = state->pattern_data ? ((float *)state->pattern_data)[4] : 0.0f;
-    float background_level = state->pattern_data ? ((float *)state->pattern_data)[5] : 0.1f;
-    bool inverted = false;
-
-    float sparkle_hues[] = {0.0f, 60.0f, 120.0f, 180.0f, 240.0f, 300.0f};
-    for(int i = 0; i < 6; i++) {
-        if(state->controller_state && state->controller_state->row[0][i]) {
-            sparkle_hue = sparkle_hues[i];
-        }
-        if(state->controller_state && state->controller_state->row[1][i]) {
-            background_hue = sparkle_hues[i];
-        }
-    }
-
-    uint8_t r, g, b;
-    uint8_t background_brightness = (uint8_t)(background_level * 255);
-
-    for (uint16_t i = 0; i < strip->led_count; i++) {
-        float random_value = (float)(rand() % 1000) / 1000.0f; // Random value between 0 and 1
+    float sparkle_chance = state->params[0].value;
+    float sparkle_hue = state->params[1].value * 360.0f;
+    float sparkle_saturation = state->params[2].value;
+    float sparkle_brightness = state->params[3].value * 255.0f;
+    float background_hue = state->params[4].value * 360.0f;
+    float background_saturation = state->params[5].value;
+    float background_brightness = state->params[6].value * 255.0f;
     
-        if (random_value < log10f(sparkle_chance/20 + 1)) {
+    bool inverted = false;
+    uint8_t r, g, b;
+
+    // Create time-based sparkle persistence
+    // Higher speed = faster changes, Lower speed = slower changes (longer lasting sparkles)
+    float time_scale = state->time * state->speed;
+    
+    for (uint16_t i = 0; i < strip->led_count; i++) {
+        // Create a time-based seed that changes based on speed
+        // Each LED has a unique phase offset so they don't all change at once
+        float led_phase = (float)i * 0.1f;
+        float time_seed = time_scale + led_phase;
+        
+        // Use floor to create discrete time periods where sparkles persist
+        float time_period = floorf(time_seed * 20.0f); // Change sparkle state 4 times per second at speed=1.0
+        
+        // Create a pseudo-random value that stays constant during each time period
+        // This makes sparkles persist for the duration of the time period
+        float seed = time_period + (float)i * 12.9898f; // Unique seed per LED and time period
+        float pseudo_random = fmodf(sinf(seed) * 43758.5453f, 1.0f);
+        if (pseudo_random < 0) pseudo_random += 1.0f; // Ensure positive
+        
+        // Apply sparkle chance threshold
+        if (pseudo_random < sparkle_chance * 0.1f) {
+            // This LED is sparkling during this time period
             hsv_to_rgb(sparkle_hue, sparkle_saturation, 1.0f, &r, &g, &b);
             set_led_color(&strip->leds[i], r, g, b);
-            set_led_brightness(&strip->leds[i], inverted ? background_brightness : 255);
+            set_led_brightness(&strip->leds[i], inverted ? background_brightness : sparkle_brightness);
         } else {
+            // This LED shows background color during this time period
             hsv_to_rgb(background_hue, background_saturation, 1.0f, &r, &g, &b);
             set_led_color(&strip->leds[i], r, g, b);
-            set_led_brightness(&strip->leds[i], inverted ? 255 : background_brightness);
+            set_led_brightness(&strip->leds[i], inverted ? sparkle_brightness : background_brightness);
         }
     }
 }
+
+// Pattern registry
+const pattern_t pattern_registry[] = {
+    {"Fire", fire, (pattern_param_t*)fire_params, 2},
+    {"Rainbow Cycle", rainbow_cycle, (pattern_param_t*)rainbow_cycle_params, 3},
+    {"Stroboscope", stroboscope, (pattern_param_t*)stroboscope_params, 4},
+    {"Solid Color", solid_color, (pattern_param_t*)solid_color_params, 3},
+    {"Sparkle", sparkle, (pattern_param_t*)sparkle_params, 7}
+};
+
+const uint8_t pattern_count = sizeof(pattern_registry) / sizeof(pattern_registry[0]);
+
+// HELPER FUNCTIONS
+char* get_pattern_name(uint8_t pattern_id) {
+    if (pattern_id >= pattern_count) {
+        return NULL;  // Invalid pattern ID
+    }
+    return pattern_registry[pattern_id].name;
+}
+
+pattern_func_t get_pattern_function(uint8_t pattern_id) {
+    if (pattern_id >= pattern_count) {
+        return NULL;  // Invalid pattern ID
+    }
+    return pattern_registry[pattern_id].func;
+}
+
+pattern_param_t* get_pattern_params(uint8_t pattern_id) {
+    if (pattern_id >= pattern_count) {
+        return NULL;  // Invalid pattern ID
+    }
+    return pattern_registry[pattern_id].params;
+}
+
+uint8_t get_pattern_param_count(uint8_t pattern_id) {
+    if (pattern_id >= pattern_count) {
+        return 0;  // Invalid pattern ID
+    }
+    return pattern_registry[pattern_id].param_count;
+}
+
+uint8_t get_total_pattern_count() {
+    return pattern_count;
+}   
+
+

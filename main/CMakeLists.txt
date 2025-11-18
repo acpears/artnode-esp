@@ -11,6 +11,7 @@ set(priv_requires
     esp_eth
     esp_timer
     log
+    json
 )
 
 # Add target-specific requirements if needed

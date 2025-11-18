@@ -5,14 +5,15 @@
 
 typedef struct {
     // strip configuration
+    char name[32];
     uint16_t led_count;
     uint16_t start_universe;
     uint16_t start_address;
 
-    // pattern configuration
+    // default pattern configuration
     uint8_t pattern_id;
     float speed;
-    void* pattern_params;
+    float brightness;
 } led_strip_config_t;
 
 // External declarations (defined in led_config.c)

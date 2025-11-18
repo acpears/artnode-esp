@@ -13,6 +13,7 @@ void initialize_led(led_t *led, uint16_t id, uint8_t universe, uint16_t dmx_addr
 }
 
 void initialize_led_strip(led_strip_t *strip){
+    strip->brightness = 255; // Default strip brightness
     for (uint16_t i = 0; i < strip->led_count; i++) {
         initialize_led(&strip->leds[i], i + 1, strip->start_universe + ((i + 1) / DMX_DATA_MAX_LENGTH), strip->start_address + (i * 3) % DMX_DATA_MAX_LENGTH);
     }
@@ -63,6 +64,7 @@ void set_dmx_data(led_t *led, uint8_t dmx_data[][DMX_DATA_MAX_LENGTH], uint8_t n
 
 void set_strip_dmx_data(led_strip_t *strip, uint8_t dmx_data[][DMX_DATA_MAX_LENGTH], uint8_t num_universes) {
     for (uint16_t i = 0; i < strip->led_count; i++) {
+        strip->leds[i].state.brightness = strip->leds[i].state.brightness * (1.0f * strip->brightness / 255.0f);
         set_dmx_data(&strip->leds[i], dmx_data, num_universes);
     }
 }

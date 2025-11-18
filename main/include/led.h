@@ -27,6 +27,7 @@ typedef struct {
     uint16_t led_count;
     uint8_t start_universe;
     uint16_t start_address;
+    uint8_t brightness;
 } led_strip_t;
 
 void initialize_led(led_t *led, uint16_t id, uint8_t universe, uint16_t dmx_address);
