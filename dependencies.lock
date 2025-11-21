@@ -2,27 +2,27 @@ dependencies:
   espressif/ch390:
     dependencies: []
     source:
-      path: /Users/adampearson/Programming/projects/esp-idf/artnet_controller/managed_components/espressif__ch390
+      path: /Users/adampearson/Programming/projects/esp-idf/artnode-esp/managed_components/espressif__ch390
       type: local
     version: 0.3.0
   espressif/enc28j60:
     dependencies: []
     source:
-      path: /Users/adampearson/Programming/projects/esp-idf/artnet_controller/managed_components/espressif__enc28j60
+      path: /Users/adampearson/Programming/projects/esp-idf/artnode-esp/managed_components/espressif__enc28j60
       type: local
     version: 1.0.1
   espressif/eppp_link:
     dependencies: []
     source:
-      path: /Users/adampearson/Programming/projects/esp-idf/artnet_controller/managed_components/espressif__eppp_link
+      path: /Users/adampearson/Programming/projects/esp-idf/artnode-esp/managed_components/espressif__eppp_link
       type: local
     version: 1.1.3
   espressif/esp_hosted:
     dependencies: []
     source:
-      path: /Users/adampearson/Programming/projects/esp-idf/artnet_controller/managed_components/espressif__esp_hosted
+      path: /Users/adampearson/Programming/projects/esp-idf/artnode-esp/managed_components/espressif__esp_hosted
       type: local
-    version: 2.6.5
+    version: 2.6.6
   espressif/esp_serial_slave_link:
     component_hash: ac1776806de0a6e371c84e87898bb983e19ce62aa7f1e2e5c4a3b0234a575d2c
     dependencies:
@@ -36,13 +36,13 @@ dependencies:
   espressif/esp_wifi_remote:
     dependencies: []
     source:
-      path: /Users/adampearson/Programming/projects/esp-idf/artnet_controller/managed_components/espressif__esp_wifi_remote
+      path: /Users/adampearson/Programming/projects/esp-idf/artnode-esp/managed_components/espressif__esp_wifi_remote
       type: local
     version: 1.2.1
   espressif/ethernet_init:
     dependencies: []
     source:
-      path: /Users/adampearson/Programming/projects/esp-idf/artnet_controller/managed_components/espressif__ethernet_init
+      path: /Users/adampearson/Programming/projects/esp-idf/artnode-esp/managed_components/espressif__ethernet_init
       type: local
     version: 1.0.0
   espressif/lan865x:
@@ -124,6 +124,6 @@ direct_dependencies:
 - espressif/wifi_remote_over_eppp
 - idf
 - protocol_examples_common
-manifest_hash: 6fc305e9163f01efe7bb3c35bd85b7ece3d9382d6a678e513793de83185d51ab
+manifest_hash: ed97b831c1f924db96a350be0ab3d3d60796660151702975970dc7e1ae83cabc
 target: esp32p4
 version: 2.0.0
