@@ -31,10 +31,10 @@ void init_led_system(led_system_t* led_system) {
 
     // Allocate memory for LED groups, group states, and pattern states
     led_system->group_count = led_strip_config_count;
-    ESP_LOGI(LOG_TAG, "Initializing LED system with %d groups", led_system->group_count);
     led_system->groups = malloc(sizeof(led_strip_t) * led_system->group_count);
     led_system->pattern_states = malloc(sizeof(pattern_state_t) * led_system->group_count);
     led_system->controller_state = malloc(sizeof(controller_state_t));
+    ESP_LOGI(LOG_TAG, "Initializing LED system with %d groups", led_system->group_count);
 
     // Iterate over each LED group configuration from led_config.c
     for(uint8_t i = 0; i < led_system->group_count; i++) {
@@ -54,13 +54,13 @@ void init_led_system(led_system_t* led_system) {
         load_pattern_id_from_nvs(&led_system->pattern_states[i], i);
 
         // Load stored group state from NVS else initialize with defaults
-        esp_err_t err = load_group_state_from_nvs(&led_system->controller_state->groups[i], i, led_system->pattern_states[i].pattern_id);
+        esp_err_t err = load_group_state_from_nvs(&led_system->controller_state->group_states[i], i, led_system->pattern_states[i].pattern_id);
         if (err == ESP_OK) {
             ESP_LOGW(LOG_TAG, "Loaded stored state for group %d from NVS", i);
-            update_from_controller_group_state(&led_system->groups[i], &led_system->controller_state->groups[i], &led_system->pattern_states[i]);
+            update_from_controller_group_state(&led_system->groups[i], &led_system->controller_state->group_states[i], &led_system->pattern_states[i]);
         } else {
             ESP_LOGW(LOG_TAG, "Using default state for group %d", i);
-            init_group_state(&led_system->controller_state->groups[i], led_system->pattern_states[i].pattern_id, led_system->pattern_states[i].brightness, led_system->pattern_states[i].speed);
+            init_group_state(&led_system->controller_state->group_states[i], led_system->pattern_states[i].pattern_id, led_system->pattern_states[i].brightness, led_system->pattern_states[i].speed);
         }
     }
     led_system->initialized = true;
@@ -125,7 +125,7 @@ void update_led_system_patterns(led_system_t* led_system, float delta_time) {
         return;
     }
     for(uint8_t i = 0; i < led_system->group_count; i++) {
-        group_state_t* group_state = &led_system->controller_state->groups[i];
+        group_state_t* group_state = &led_system->controller_state->group_states[i];
 
         if(group_state->changed) {
             update_from_controller_group_state(&led_system->groups[i], group_state, &led_system->pattern_states[i]);
@@ -169,7 +169,7 @@ void update_pattern_state_pattern_id(led_system_t* led_system, uint8_t group_ind
     store_pattern_id_to_nvs(pattern_state, group_index);
         
     // Try and load a stored group state from NVS else initialize with defaults
-    group_state_t *group_state = &led_system->controller_state->groups[group_index];
+    group_state_t *group_state = &led_system->controller_state->group_states[group_index];
     esp_err_t err = load_group_state_from_nvs(group_state, group_index, pattern_id);
     if (err != ESP_OK) {
         ESP_LOGW(LOG_TAG, "Using default state for group %d", group_index);

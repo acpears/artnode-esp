@@ -8,13 +8,25 @@
 
 #define MAX_PATTERN_PARAMS 20
 
+#define PARAM_MAX_PERCENTAGE 100.0f
+#define PARAM_MAX_DEGREES 360.0f
+#define PARAM_MAX_BOOLEAN 1.0f
+
+typedef enum {
+    PARAM_TYPE_PERCENTAGE,  // 0 - 100
+    PARAM_TYPE_DEGREES,     // 0 - 360
+    PARAM_TYPE_BOOLEAN,     // 0 or 1
+    PARAM_TYPE_STEPS        // 0 to N
+} param_type_e;
+
+
+
 // Pattern parameter descriptor
 typedef struct {
     char name[32];          // Parameter name (e.g., "hue", "speed", "intensity")
     float value;            // Current value
-    const float min_value;        // Minimum allowed value
-    const float max_value;        // Maximum allowed value
-    const float default_value;    // Default value
+    float max_value;
+    param_type_e type;          // 0 = percentage (0 - 100), 1 = degrees (0 - 360), 2 = boolean (0 or 1), 3 = steps (0 to N) 
 } pattern_param_t;
 
 // Pattern state

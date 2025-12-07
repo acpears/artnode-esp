@@ -16,7 +16,7 @@ typedef struct {
 
 // Controller state
 typedef struct {
-    group_state_t groups[MAX_LED_STRIPS];
+    group_state_t group_states[MAX_LED_STRIPS];
 } controller_state_t;
 
 typedef struct {

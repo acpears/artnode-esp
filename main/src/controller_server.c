@@ -153,6 +153,7 @@ static esp_err_t put_group_handler(httpd_req_t *req)
         return ESP_ERR_INVALID_ARG;
     }
 
+    // Request data received
     ESP_LOGI(LOG_TAG, "Data received: %s", buf);
 
     cJSON *json = cJSON_Parse(buf);
@@ -161,8 +162,8 @@ static esp_err_t put_group_handler(httpd_req_t *req)
     ESP_LOGI(LOG_TAG, "Getting data for group %d", group_id);
 
     if (led_system && group_id < 4) {
-        led_system->controller_state->groups[group_id].brightness = cJSON_GetObjectItemCaseSensitive(json, "brightnessParam")->valuedouble / 100.0f;
-        led_system->controller_state->groups[group_id].speed = cJSON_GetObjectItemCaseSensitive(json, "speedParam")->valuedouble / 100.0f;
+        led_system->controller_state->group_states[group_id].brightness = cJSON_GetObjectItemCaseSensitive(json, "brightnessParam")->valuedouble / 100.0f;
+        led_system->controller_state->group_states[group_id].speed = cJSON_GetObjectItemCaseSensitive(json, "speedParam")->valuedouble / 100.0f;
         cJSON *params_array = cJSON_GetObjectItemCaseSensitive(json, "params");
 
         int param_count = cJSON_GetArraySize(params_array);
@@ -170,11 +171,11 @@ static esp_err_t put_group_handler(httpd_req_t *req)
             cJSON *param_item = cJSON_GetArrayItem(params_array, i);
             if (cJSON_IsObject(param_item)) {
                 uint8_t param_id = cJSON_GetObjectItemCaseSensitive(param_item, "id")->valueint;
-                led_system->controller_state->groups[group_id].params[param_id] = cJSON_GetObjectItemCaseSensitive(param_item, "value")->valuedouble / 100.0f;
+                led_system->controller_state->group_states[group_id].params[param_id] = cJSON_GetObjectItemCaseSensitive(param_item, "value")->valuedouble;
             }
         }
                  
-        led_system->controller_state->groups[group_id].changed = true;
+        led_system->controller_state->group_states[group_id].changed = true;
         httpd_resp_set_status(req, "200 OK");
         const char* success_response = "Group updated successfully";
         httpd_resp_send(req, success_response, strlen(success_response));
@@ -338,10 +339,11 @@ static esp_err_t extract_body(httpd_req_t *req, char **body_buffer){
 // Create group json for a given group index
 static void create_group_json(cJSON* parent, uint8_t group_index) {
     const led_strip_config_t* config = &led_strip_configs[group_index];
-    const group_state_t* state = &led_system->controller_state->groups[group_index];
+    const group_state_t* state = &led_system->controller_state->group_states[group_index];
 
     cJSON_AddNumberToObject(parent, "id", group_index);
     cJSON_AddStringToObject(parent, "name", config->name);
+    cJSON_AddNumberToObject(parent, "patternId", led_system->pattern_states[group_index].pattern_id);
     cJSON_AddNumberToObject(parent, "brightnessParam", state->brightness * 100.0f); // Scale to 0-100 for UI
     cJSON_AddNumberToObject(parent, "speedParam", state->speed * 100.0f); // Scale to 0-100 for UI
     cJSON *params = cJSON_CreateArray();
@@ -353,7 +355,9 @@ static void create_group_json(cJSON* parent, uint8_t group_index) {
         cJSON *param_json = cJSON_CreateObject();
         cJSON_AddNumberToObject(param_json, "id", i);
         cJSON_AddStringToObject(param_json, "name", pattern_params[i].name);
-        cJSON_AddNumberToObject(param_json, "value", state->params[i] * 100.0f); // Scale to 0-100 for UI
+        cJSON_AddNumberToObject(param_json, "value", state->params[i]);
+        cJSON_AddNumberToObject(param_json, "type", pattern_params[i].type);
+        cJSON_AddNumberToObject(param_json, "maxValue", pattern_params[i].max_value);
         cJSON_AddItemToArray(params, param_json);
     }
 

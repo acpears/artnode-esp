@@ -7,7 +7,6 @@
 #include "colours.h"
 #include "led.h"
 
-
 // Update single pattern
 void update_pattern(pattern_state_t *state, led_strip_t *strip, float delta_time) {
     if (!state->active) return;
@@ -21,20 +20,71 @@ void update_pattern(pattern_state_t *state, led_strip_t *strip, float delta_time
 
 // PATTERNS
 
+// Single solid color pattern
+const pattern_param_t solid_color_params[] = {
+    {"hue", 0.0f, PARAM_MAX_DEGREES, PARAM_TYPE_DEGREES},
+    {"saturation", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"value", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
+};
+void solid_color(led_strip_t *strip, pattern_state_t *state) {
+    float h, s, v;
+    h = state->params[0].value;
+    s = state->params[1].value / 100.0f; // Scale to 0 - 1
+    v = state->params[2].value / 100.0f; 
+
+    uint8_t r, g, b;
+    hsv_to_rgb(h, s, v, &r, &g, &b);
+    for (uint16_t i = 0; i < strip->led_count; i++) {
+        set_led_color(&strip->leds[i], r, g, b);
+        set_led_brightness(&strip->leds[i], 255);
+    }
+}
+
+// 2 solid color pattern
+const pattern_param_t solid_color_params_2[] = {
+    {"hue_1", 0.0f, PARAM_MAX_DEGREES, PARAM_TYPE_DEGREES},
+    {"saturation_1", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"value_1", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"hue_2", 180.0f, PARAM_MAX_DEGREES, PARAM_TYPE_DEGREES},
+    {"saturation_2", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"value_2", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
+};
+void solid_color_2(led_strip_t *strip, pattern_state_t *state) {
+    float h1, s1, v1, h2, s2, v2;
+    h1 = state->params[0].value;
+    s1 = state->params[1].value / 100.0f; // Scale to 0 - 1
+    v1 = state->params[2].value / 100.0f; 
+    h2 = state->params[3].value;
+    s2 = state->params[4].value / 100.0f; //
+    v2 = state->params[5].value / 100.0f; 
+
+    uint8_t r1, g1, b1, r2, g2, b2;
+    hsv_to_rgb(h1, s1, v1, &r1, &g1, &b1);
+    hsv_to_rgb(h2, s2, v2, &r2, &g2, &b2);
+    for (uint16_t i = 0; i < strip->led_count; i++) {
+        if (i % 2 == 0) {
+            set_led_color(&strip->leds[i], r1, g1, b1);
+        } else {
+            set_led_color(&strip->leds[i], r2, g2, b2);
+        }
+        set_led_brightness(&strip->leds[i], 255);
+    }
+}
+
 // Pattern function parameters
 const pattern_param_t rainbow_cycle_params[] = {
-    {"color_width", 1.0f, 0.1f, 5.0f, 1.0f, false, false},
-    {"saturation", 1.0f, 0.0f, 1.0f, 1.0f, false, true},
-    {"brightness", 1.0f, 0.0f, 1.0f, 1.0f, false, true}
+    {"pixel_width", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"saturation", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"brightness", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
 };
 // ID 0:rainbow cycle pattern
 void rainbow_cycle(led_strip_t *strip, pattern_state_t *state) {
-    float color_width = state->params[0].value;
-    float saturation = state->params[1].value;
-    uint8_t brightness = state->params[2].value * 255.0f;
+    float pixel_width = state->params[0].value / 100.0f;
+    float saturation = state->params[1].value / 100.0f;
+    uint8_t brightness = state->params[2].value / 100.0f * 255.0f;
     
     for (uint16_t i = 0; i < strip->led_count; i++) {
-        float hue = sinf((state->time * state->speed) + ( (float)i * color_width * (2.0f * M_PI / strip->led_count))) * 180.0f + 180.0f;
+        float hue = sinf((state->time * state->speed) + ( (float)i * pixel_width * (2.0f * M_PI / strip->led_count))) * 180.0f + 180.0f;
 
         uint8_t r, g, b;
         hsv_to_rgb(hue, saturation, 1.0f, &r, &g, &b);
@@ -46,17 +96,17 @@ void rainbow_cycle(led_strip_t *strip, pattern_state_t *state) {
 
 // ID 1: stroboscope pattern
 const pattern_param_t stroboscope_params[] = {
-    {"flash_on_off_ratio", 0.5f, 0.0f, 1.0f, 0.5f, false, false},
-    {"hue", 0.0f, 0.0f, 360.0f, 0.0f, false, true},
-    {"saturation", 1.0f, 0.0f, 1.0f, 1.0f, false, true},
-    {"value", 1.0f, 0.0f, 1.0f, 1.0f, false, true}
+    {"flash_on_off_ratio", 50.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"hue", 0.0f, PARAM_MAX_DEGREES, PARAM_TYPE_DEGREES},
+    {"saturation", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"value", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
 };
 void stroboscope(led_strip_t *strip, pattern_state_t *state){
     float flash_on_off_ratio = state->params[0].value;
     float h, s, v;
-    h = state->params[1].value * 360.0f;
-    s = state->params[2].value;
-    v = state->params[3].value;
+    h = state->params[1].value;
+    s = state->params[2].value / 100.0f;
+    v = state->params[3].value / 100.0f;
 
     float flash_duration = 1.0f / state->speed; // Duration of the flash in seconds
     float off_duration = flash_duration * flash_on_off_ratio;
@@ -75,12 +125,12 @@ void stroboscope(led_strip_t *strip, pattern_state_t *state){
 
 // ID 2: fire effect
 const pattern_param_t fire_params[] = {
-    {"flicker_intensity", 1.0f, 0.1f, 5.0f, 1.0f, false, false},
-    {"yellow_level", 0.0f, 0.0f, 1.0f, 0.0f, false, true}
+    {"flicker_intensity", 50.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"yellow_level", 0.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
 };
 void fire(led_strip_t *strip, pattern_state_t *state) {
-    float flicker_intensity = state->params[0].value;
-    float yellow_level = state->params[1].value;
+    float flicker_intensity = state->params[0].value / 100.0f;
+    float yellow_level = state->params[1].value / 100.0f;
 
     for (uint16_t i = 0; i < strip->led_count; i++) {
         // Calculate flicker based on time and LED index with a bit of randomness
@@ -101,44 +151,24 @@ void fire(led_strip_t *strip, pattern_state_t *state) {
     }
 }
 
-// ID 3: solid color pattern
-const pattern_param_t solid_color_params[] = {
-    {"hue", 0.0f, 0.0f, 360.0f, 0.0f, false, true},
-    {"saturation", 1.0f, 0.0f, 1.0f, 1.0f, false, true},
-    {"value", 1.0f, 0.0f, 1.0f, 1.0f, false, true}
-};
-void solid_color(led_strip_t *strip, pattern_state_t *state) {
-    float h, s, v;
-    h = state->params[0].value * 360.0f;
-    s = state->params[1].value;
-    v = state->params[2].value;
-
-    uint8_t r, g, b;
-    hsv_to_rgb(h, s, v, &r, &g, &b);
-    for (uint16_t i = 0; i < strip->led_count; i++) {
-        set_led_color(&strip->leds[i], r, g, b);
-        set_led_brightness(&strip->leds[i], 255);
-    }
-}
-
 // ID 4: Sparkle pattern
 const pattern_param_t sparkle_params[] = {
-    {"sparkle_chance", 0.5f, 0.0f, 1.0f, 0.5f, false, false},
-    {"sparkle_hue", 0.0f, 0.0f, 360.0f, 0.0f, false, true},
-    {"sparkle_saturation", 0.0f, 0.0f, 1.0f, 0.0f, false, true},
-    {"sparkle_brightness", 1.0f, 0.0f, 1.0f, 0.0f, false, true},
-    {"background_hue", 0.0f, 0.0f, 360.0f, 0.0f, false, true},
-    {"background_saturation", 1.0f, 0.0f, 1.0f, 1.0f, false, true},
-    {"background_brightness", 0.5f, 0.0f, 1.0f, 0.5f, false, true}
+    {"sparkle_chance", 50.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"sparkle_hue", 0.0f, PARAM_MAX_DEGREES, PARAM_TYPE_DEGREES},
+    {"sparkle_saturation", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"sparkle_brightness", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"background_hue", 0.0f, PARAM_MAX_DEGREES, PARAM_TYPE_DEGREES},
+    {"background_saturation", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"background_brightness", 50.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
 };
 void sparkle(led_strip_t *strip, pattern_state_t *state) {
-    float sparkle_chance = state->params[0].value;
-    float sparkle_hue = state->params[1].value * 360.0f;
-    float sparkle_saturation = state->params[2].value;
-    float sparkle_brightness = state->params[3].value * 255.0f;
-    float background_hue = state->params[4].value * 360.0f;
-    float background_saturation = state->params[5].value;
-    float background_brightness = state->params[6].value * 255.0f;
+    float sparkle_chance = state->params[0].value / 100.0f;
+    float sparkle_hue = state->params[1].value;
+    float sparkle_saturation = state->params[2].value / 100.0f;
+    float sparkle_brightness = state->params[3].value / 100.0f * 255.0f;
+    float background_hue = state->params[4].value;
+    float background_saturation = state->params[5].value / 100.0f;
+    float background_brightness = state->params[6].value / 100.0f * 255.0f;
     
     bool inverted = false;
     uint8_t r, g, b;
@@ -179,18 +209,18 @@ void sparkle(led_strip_t *strip, pattern_state_t *state) {
 
 // ID 5: Moving band pattern
 const pattern_param_t moving_band_params[] = {
-    {"hue", 0.0f, 0.0f, 360.0f, 0.0f, false, true},
-    {"saturation", 1.0f, 0.0f, 1.0f, 1.0f, false, true},
-    {"band_width", 0.1f, 0.01f, 1.0f, 0.1f, false, false},
-    {"band_number", 0.1f, 0.01f, 1.0f, 0.1f, false, false},
-    {"band_smoothing", 0.0f, 0.0f, 1.0f, 0.0f, false, false}
+    {"hue", 0.0f, PARAM_MAX_DEGREES, PARAM_TYPE_DEGREES},
+    {"saturation", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"band_width", 10.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"band_number", 10.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"band_smoothing", 0.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
 };
 void moving_band(led_strip_t *strip, pattern_state_t *state) {
-    float hue = state->params[0].value * 360.0f;
-    float saturation = state->params[1].value;
-    float band_width = state->params[2].value; // (0.0 to 1.0 of strip length)
-    float band_number = state->params[3].value; // (0.0 for 1 and 1.0 for max bands)
-    float band_smoothing = state->params[4].value; // (0.0 to 1.0 for smoothing)
+    float hue = state->params[0].value;
+    float saturation = state->params[1].value / 100.0f;
+    float band_width = state->params[2].value / 100.0f;
+    float band_number = state->params[3].value / 100.0f;
+    float band_smoothing = state->params[4].value / 100.0f;
 
     uint16_t band_count = (uint16_t)(band_number * 10.0f) + 1; // Map to 1-10 bands
 
@@ -225,12 +255,13 @@ void moving_band(led_strip_t *strip, pattern_state_t *state) {
 
 // Pattern registry
 const pattern_t pattern_registry[] = {
+    {"Solid Color", solid_color, (pattern_param_t*)solid_color_params, sizeof(solid_color_params) / sizeof(pattern_param_t)},
+    {"Solid Color 2", solid_color_2, (pattern_param_t*)solid_color_params_2, sizeof(solid_color_params_2) / sizeof(pattern_param_t)},
+    {"Moving Band", moving_band, (pattern_param_t*)moving_band_params, sizeof(moving_band_params) / sizeof(pattern_param_t)},
+    {"Sparkle", sparkle, (pattern_param_t*)sparkle_params, sizeof(sparkle_params) / sizeof(pattern_param_t)},
     {"Fire", fire, (pattern_param_t*)fire_params, sizeof(fire_params) / sizeof(pattern_param_t)},
     {"Rainbow Cycle", rainbow_cycle, (pattern_param_t*)rainbow_cycle_params, sizeof(rainbow_cycle_params) / sizeof(pattern_param_t)},
     {"Stroboscope", stroboscope, (pattern_param_t*)stroboscope_params, sizeof(stroboscope_params) / sizeof(pattern_param_t)},
-    {"Solid Color", solid_color, (pattern_param_t*)solid_color_params, sizeof(solid_color_params) / sizeof(pattern_param_t)},
-    {"Sparkle", sparkle, (pattern_param_t*)sparkle_params, sizeof(sparkle_params) / sizeof(pattern_param_t)},
-    {"Moving Band", moving_band, (pattern_param_t*)moving_band_params, sizeof(moving_band_params) / sizeof(pattern_param_t)}
 };
 
 const uint8_t pattern_count = sizeof(pattern_registry) / sizeof(pattern_registry[0]);

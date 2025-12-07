@@ -17,16 +17,16 @@ typedef struct {
 
 typedef struct {
     uint16_t id;
-    uint8_t universe;
-    uint16_t dmx_address;
+    uint8_t universe; // DMX universe (1-based)
+    uint16_t dmx_address; // DMX address within the universe (1-based)
     led_state_t state;
 } led_t;
 
 typedef struct {
     led_t *leds;
     uint16_t led_count;
-    uint8_t start_universe;
-    uint16_t start_address;
+    uint8_t start_universe; // DMX universe (1-based)
+    uint16_t start_address; // DMX address within the universe (1-based)
     uint8_t brightness;
 } led_strip_t;
 
