@@ -102,7 +102,7 @@ const pattern_param_t stroboscope_params[] = {
     {"value", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
 };
 void stroboscope(led_strip_t *strip, pattern_state_t *state){
-    float flash_on_off_ratio = state->params[0].value;
+    float flash_on_off_ratio = state->params[0].value / 100.0f;
     float h, s, v;
     h = state->params[1].value;
     s = state->params[2].value / 100.0f;
@@ -123,31 +123,33 @@ void stroboscope(led_strip_t *strip, pattern_state_t *state){
     }
 }
 
-// ID 2: fire effect
+// Fire effect
 const pattern_param_t fire_params[] = {
     {"flicker_intensity", 50.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
-    {"yellow_level", 0.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
+    {"flicker_width", 50.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE},
+    {"hue", 30.0f, PARAM_MAX_DEGREES, PARAM_TYPE_DEGREES},
+    {"saturation", 100.0f, PARAM_MAX_PERCENTAGE, PARAM_TYPE_PERCENTAGE}
 };
 void fire(led_strip_t *strip, pattern_state_t *state) {
     float flicker_intensity = state->params[0].value / 100.0f;
-    float yellow_level = state->params[1].value / 100.0f;
+    float flicker_width = (state->params[1].value / 100.0f) * 1.2f; // Scale to 0.0 - 1.2
+    float h = state->params[2].value;
+    float s = state->params[3].value / 100.0f;
+    float speed = state->speed * 2.0f; // Fire speed multiplier
 
     for (uint16_t i = 0; i < strip->led_count; i++) {
         // Calculate flicker based on time and LED index with a bit of randomness
-        float random_offset = (float)(i * 37 % 100) / 100.0f * 2.0f * M_PI; // Random phase offset
-        float flicker = (sinf((state->time * 5) + (i * 1.2f) + 1.0f) + 1.0f) / 2.0f; // Normalize to 0-1
-        flicker = powf(flicker, flicker_intensity); // Adjust intensity
+        float flicker = ( sinf( (state->time * speed) + (flicker_width * i)) + 1.0f ) / 2.0f; // Normalize to 0-1
+        flicker = powf(flicker, flicker_intensity * 2.0f); // Adjust intensity
 
-        // Map flicker to color gradient from dark red to bright yellow
-        uint8_t r = (uint8_t)(flicker * 255);
+        // Map flicker to brightness
+        uint8_t brightness = (uint8_t)(flicker * 255);
 
-        uint8_t green_default = 255 * yellow_level;
-        uint8_t random_intensity = 10; // Random value between -4 and +4
-        int8_t random_green = green_default +(rand() % random_intensity - (random_intensity / 2)); // Add some randomness to green channel
-        uint8_t g = (uint8_t)(flicker * random_green);
+        uint8_t r, g, b;
+        hsv_to_rgb(h, s, 1.0f, &r, &g, &b);
 
-        set_led_color(&strip->leds[i], r, g, 0);
-        set_led_brightness(&strip->leds[i], 255);
+        set_led_color(&strip->leds[i], r, g, b);
+        set_led_brightness(&strip->leds[i], brightness);
     }
 }
 
@@ -193,7 +195,7 @@ void sparkle(led_strip_t *strip, pattern_state_t *state) {
         if (pseudo_random < 0) pseudo_random += 1.0f; // Ensure positive
         
         // Apply sparkle chance threshold
-        if (pseudo_random < sparkle_chance * 0.1f) {
+        if (pseudo_random < sparkle_chance * 0.01f) {
             // This LED is sparkling during this time period
             hsv_to_rgb(sparkle_hue, sparkle_saturation, 1.0f, &r, &g, &b);
             set_led_color(&strip->leds[i], r, g, b);

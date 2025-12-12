@@ -16,13 +16,13 @@ dependencies:
     source:
       path: /Users/adampearson/Programming/projects/esp-idf/artnode-esp/managed_components/espressif__eppp_link
       type: local
-    version: 1.1.3
+    version: 1.1.4
   espressif/esp_hosted:
     dependencies: []
     source:
       path: /Users/adampearson/Programming/projects/esp-idf/artnode-esp/managed_components/espressif__esp_hosted
       type: local
-    version: 2.7.0
+    version: 2.7.3
   espressif/esp_serial_slave_link:
     component_hash: ac1776806de0a6e371c84e87898bb983e19ce62aa7f1e2e5c4a3b0234a575d2c
     dependencies:
@@ -124,6 +124,6 @@ direct_dependencies:
 - espressif/wifi_remote_over_eppp
 - idf
 - protocol_examples_common
-manifest_hash: ab202eaabfab97d9b9fc64c7e56340866c17ecd4c329502ed8747a7526ab5870
+manifest_hash: 8727d8c6a76188a6e382a7416ac050bdf7b5d3fc4284cab19ff8dd1cf4cd6621
 target: esp32p4
 version: 2.0.0
