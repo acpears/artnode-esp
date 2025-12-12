@@ -205,6 +205,11 @@ void init_ethernet_static_ip(char* static_ip, char* gateway, char* netmask, bool
 #define MAX_STA_CONN 1
 #define AP_IP_ADDR "192.168.10.1"
 
+
+#define WIFI_SSID "Wifi MP"
+#define WIFI_PASS "14EA24EB34"
+
+
 static wifi_config_t wifi_config = {
     .ap = {
         .ssid = ESP_WIFI_SSID,
@@ -218,6 +223,10 @@ static wifi_config_t wifi_config = {
             .required = true,
         },
     },
+    .sta = {
+        .ssid = WIFI_SSID,
+        .password = WIFI_PASS,
+    }
 };
 
 static void update_wifi_ap_ready_status(wifi_ap_status_t* status) {
@@ -255,6 +264,16 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
         case WIFI_EVENT_AP_STADISCONNECTED:
             ESP_LOGI(LOG_TAG, "Station " MACSTR " has disconnected from AP",
                      MAC2STR(((wifi_event_ap_stadisconnected_t*)event_data)->mac));
+            break;
+        case WIFI_EVENT_STA_START:
+            ESP_LOGI(LOG_TAG, "WiFi STA has started");
+            wifi_ap_status->wifi_ap_up = true;
+            update_wifi_ap_ready_status(wifi_ap_status);
+            break;
+        case WIFI_EVENT_STA_DISCONNECTED:
+            ESP_LOGI(LOG_TAG, "WiFi STA disconnected");
+            wifi_ap_status->wifi_ap_up = false;
+            update_wifi_ap_ready_status(wifi_ap_status);
             break;
         default:
             ESP_LOGI(LOG_TAG, "WiFi Event: %ld", event_id);
@@ -307,7 +326,7 @@ static void set_wifi_dhcp_settings(esp_netif_t *netif)
 }
 
 
-static void init_wifi_tcp(wifi_ap_status_t* wifi_ap_status) {
+static void init_wifi_ap_tcp(wifi_ap_status_t* wifi_ap_status) {
     // Initialize TCP/IP stack
     ESP_ERROR_CHECK(esp_netif_init());
     esp_netif_t *wifi_ap_netif = esp_netif_create_default_wifi_ap();
@@ -326,6 +345,29 @@ static void init_wifi_tcp(wifi_ap_status_t* wifi_ap_status) {
     ESP_LOGI(LOG_TAG, "WiFi Access Point \"%s\" started", ESP_WIFI_SSID);
 }
 
-void init_wifi(wifi_ap_status_t* wifi_ap_status) {
-    init_wifi_tcp(wifi_ap_status);
+static void init_wifi_tcp(wifi_ap_status_t* wifi_ap_status) {
+    // Initialize TCP/IP stack
+    ESP_ERROR_CHECK(esp_netif_init());
+    esp_netif_t *wifi_netif = esp_netif_create_default_wifi_sta();
+    // set_wifi_dhcp_settings(wifi_netif);
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT(); // always start with this
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    // Register application event handlers
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_event_handler, wifi_ap_status));
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    ESP_LOGI(LOG_TAG, "WiFi Station started");
+}
+
+void init_wifi(wifi_ap_status_t* wifi_ap_status, bool ap_mode) {
+    if (ap_mode) {
+        init_wifi_ap_tcp(wifi_ap_status);
+    } else {
+        init_wifi_tcp(wifi_ap_status);
+    }
 }

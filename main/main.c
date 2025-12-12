@@ -15,7 +15,7 @@
 #include "esp_event.h"
 #include "esp_log.h"
 
-#define HOST_IP_ADDR "192.168.0.21"
+#define HOST_IP_ADDR "10.0.0.2"
 
 #define UNIVERSE_COUNT 20
 #define ADDRESSES_PER_UNIVERSE 512
@@ -96,8 +96,8 @@ void app_main(void)
     // ESP_ERROR_CHECK(nvs_flash_erase());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    init_wifi(&wifi_status);
-    init_ethernet_static_ip("192.168.0.2", "192.168.0.1", "255.255.255.0", false, &network_status);
+    init_wifi(&wifi_status, false);
+    init_ethernet_static_ip("10.0.0.3", "10.0.0.1", "255.255.255.0", false, &network_status);
     init_http_server(&wifi_status, &led_system);
 
     xTaskCreate(artnet_controller_task, "artnet_controller_task", 16384, NULL, 5, NULL);

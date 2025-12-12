@@ -17,6 +17,6 @@ typedef struct {
 
 void init_ethernet(network_status_t* network_status);
 void init_ethernet_static_ip(char* static_ip, char* gateway, char* netmask, bool enable_dns, network_status_t* network_status);
-void init_wifi(wifi_ap_status_t* wifi_ap_status);
+void init_wifi(wifi_ap_status_t* wifi_ap_status, bool ap_mode);
 
 #endif // NETWORK_H
